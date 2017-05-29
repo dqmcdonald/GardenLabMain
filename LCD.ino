@@ -18,9 +18,6 @@ SerialLCD::SerialLCD( )
 
 }
 
-
-
-
 void SerialLCD::displayScreen(char *theText) {
   int delayTime = 50;
   Serial2.write(0xFE);   // command flag
