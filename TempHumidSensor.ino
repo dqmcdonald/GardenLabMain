@@ -2,7 +2,7 @@
 
 /* DHT Based temperature sensor */
 
-TemperatureSensor::TemperatureSensor( const String& id, const DHT& dht ) : Sensor( id ), d_dht(dht) {
+TemperatureSensor::TemperatureSensor( const String& id,  DHT& dht ) : Sensor( id ), d_dht(dht) {
 }
 
 float TemperatureSensor::getValue()  {
@@ -17,7 +17,7 @@ float TemperatureSensor::getValue()  {
 
 /* DHT Based humidity sensor */
 
-HumiditySensor::HumiditySensor( const String& id, const DHT& dht ) : Sensor( id ), d_dht(dht) {
+HumiditySensor::HumiditySensor( const String& id,  DHT& dht ) : Sensor( id ), d_dht(dht) {
 }
 
 float HumiditySensor::getValue()  {

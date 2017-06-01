@@ -28,8 +28,8 @@
 /* Behavior defines: */
 #define MAX_DATA_SEND_TRIES 3
 
-#define DATA_SEND_PERIOD (1000*20*1)    // Send data every 5 minutes
-#define LCD_UPDATE_PERIOD (1000*10)      // Update LCD every 10 seconds
+#define DATA_SEND_PERIOD (1000l*20*1)    // Send data every 5 minutes
+#define LCD_UPDATE_PERIOD (1000l*10)      // Update LCD every 10 seconds
 
 
 /* Utility functions */
@@ -56,7 +56,14 @@ bool send_string_with_response( Stream& ser, const String& str, long unsigned in
 */
 
 #define DHT_PIN 4
+#define WIND_SPEED_PIN 2
+#define RAINFALL_PIN 3
+#define WIND_DIRECTION_PIN A2
 #define MODE_BUTTON_PIN 49
+
+
+
+
 
 /* Mode definitions */
 #define LCD_WEATHER_MODE 0
@@ -85,7 +92,7 @@ Adafruit_BMP280 bmp; // I2C
 
 /* Sensors: */
 
-const int NUM_SENSORS = 6;
+const int NUM_SENSORS = 9;
 
 TemperatureSensor temp_sensor = TemperatureSensor("TEMP", dht );
 HumiditySensor humidity_sensor = HumiditySensor("HUMI", dht );
@@ -93,6 +100,10 @@ InsideTempSensor itemp_sensor = InsideTempSensor("ITMP", bmp );
 PressureSensor pressure_sensor = PressureSensor("PRES", bmp );
 CurrentSensor current_sensor = CurrentSensor("LCUR");
 BatteryVoltageSensor bat_voltage_sensor = BatteryVoltageSensor("BATV");
+WindSpeedSensor wind_speed_sensor = WindSpeedSensor("WSPD", WIND_SPEED_PIN);
+WindDirectionSensor wind_direction_sensor = WindDirectionSensor("WDIR", WIND_DIRECTION_PIN);
+RainfallSensor rainfall_sensor = RainfallSensor("RAIN", RAINFALL_PIN );
+
 
 // An array of sensors - so we can iterate through them all and perform update/reset etc on them
 Sensor* all_sensors[NUM_SENSORS] = {
@@ -101,7 +112,10 @@ Sensor* all_sensors[NUM_SENSORS] = {
   &itemp_sensor,
   &pressure_sensor,
   &current_sensor,
-  &bat_voltage_sensor
+  &bat_voltage_sensor,
+  &wind_speed_sensor,
+  &wind_direction_sensor,
+  &rainfall_sensor
 };
 
 
@@ -161,6 +175,12 @@ void loop() {
     time_at_data_send += DATA_SEND_PERIOD;
 
     send_data_to_server();
+
+    // Reset any accumulating sensors (rainfall etc)
+    for ( auto sensor : all_sensors ) {
+      sensor->resetAccumulation();
+    }
+
 
   }
 
@@ -252,7 +272,7 @@ void send_data_to_server()
 
 
 // Send a string value via Serial and wait for an 'OK' response. If no response is received within 'time_out' ms then return false
-bool send_string_with_response( Stream& ser, const String& str, long unsigned int time_out = 1000)
+bool send_string_with_response( Stream& ser, const String& str, long unsigned int time_out)
 {
 
   // Send the length of the string first:

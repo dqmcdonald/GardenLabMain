@@ -43,7 +43,7 @@ void SerialLCD::displayScreen(char *theText) {
 // String version of displayLine. See char* version for more details:
 void SerialLCD::displayLine( int lineNum, String theText ) {
   const int BUF_LEN = 20;
-  char buf[BUF_LEN];
+   char buf[BUF_LEN];
   theText.getBytes(buf, BUF_LEN);
   displayLine( lineNum, buf );
 
@@ -55,7 +55,7 @@ void SerialLCD::displayLine( int lineNum, String theText ) {
 // *theText is a string of text and it gets padded at the end with spaces
 // to overwrite whatever is already showing on that line. If you send more than
 // 20 characters, it truncates the text.
-void SerialLCD::displayLine(int lineNum, char *theText) {
+void SerialLCD::displayLine(int lineNum,  char *theText) {
   int delayTime = 50;
   int lcdPosition = 0;  // initialize lcdPosition and use to indicate value values
 

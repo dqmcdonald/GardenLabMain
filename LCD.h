@@ -6,7 +6,7 @@ class SerialLCD {
 public:
   SerialLCD(); 
   void displayScreen( char* theText );
-  void displayLine(int lineNum, char *theText);
+  void displayLine(int lineNum,  char *theText);
   void displayLine(int lineNum, String theText);
   void displayChar(int lineNum, int charNum, char theChar);
   void clear();
