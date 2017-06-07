@@ -1,7 +1,7 @@
 #include "Sensor.h"
 
 
-#define DEBUG_RAIN 1
+//#define DEBUG_RAIN 1
 
 const unsigned long int RAINFALL_COUNT_PERIOD = 60 * 1000l; // Update rainfall every 60 seconds
 

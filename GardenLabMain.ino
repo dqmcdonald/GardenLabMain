@@ -28,7 +28,7 @@
 /* Behavior defines: */
 #define MAX_DATA_SEND_TRIES 3
 
-#define DATA_SEND_PERIOD (1000l*20*1)    // Send data every 5 minutes
+
 #define LCD_UPDATE_PERIOD (1000l*10)      // Update LCD every 10 seconds
 
 
@@ -121,7 +121,7 @@ Sensor* all_sensors[NUM_SENSORS] = {
 
 void setup() {
   Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial1.begin(19200);
 
   // Mode button:
   pinMode(MODE_BUTTON_PIN, INPUT_PULLUP);
@@ -169,11 +169,8 @@ void loop() {
     sensor->update();
   }
 
-  // Check if it's time to send data to the server:
-  unsigned long int elapsed_time = millis() - time_at_data_send;
-  if ( elapsed_time >= DATA_SEND_PERIOD ) {
-    time_at_data_send += DATA_SEND_PERIOD;
-
+  // Check if it's we have a request to send data to the server:
+  if ( received_request_to_send_data(Serial1 ) ) {
     send_data_to_server();
 
     // Reset any accumulating sensors (rainfall etc)
@@ -185,7 +182,7 @@ void loop() {
   }
 
   // Check if it's time to update the LCD
-  elapsed_time = millis() - time_at_lcd_update;
+  unsigned long int elapsed_time = millis() - time_at_lcd_update;
   if ( elapsed_time >= LCD_UPDATE_PERIOD ) {
     time_at_lcd_update += LCD_UPDATE_PERIOD;
 
@@ -318,7 +315,21 @@ bool send_string_with_response( Stream& ser, const String& str, long unsigned in
   return !timed_out;
 }
 
+// Returns true if we got an "S" (for "send") from the ESP8266
+bool received_request_to_send_data( Stream& ser )
+{
 
+  if ( ser.available() ) {
+    char c = ser.read();
+    if ( c == 'S') {
+      return true;
+    }
+  }
+
+  return false;
+
+
+}
 
 
 
