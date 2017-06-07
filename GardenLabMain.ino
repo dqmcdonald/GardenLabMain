@@ -28,13 +28,13 @@
 /* Behavior defines: */
 #define MAX_DATA_SEND_TRIES 3
 
-#define DATA_SEND_PERIOD (1000l*20*1)    // Send data every 5 minutes
+#define DATA_SEND_PERIOD (1000l*60*5)    // Send data every 5 minutes
 #define LCD_UPDATE_PERIOD (1000l*10)      // Update LCD every 10 seconds
 
 
 /* Utility functions */
-// Send a string value via Serial and wait for an 'OK' response. If no response is received within 'time_out' ms then return false
-bool send_string_with_response( Stream& ser, const String& str, long unsigned int time_out = 1000);
+// Send a string value via Serial 
+bool send_string( Stream& ser, const String& str);
 
 /* Pin assignments follow:
 
@@ -128,11 +128,9 @@ void setup() {
   mode_button.attach(MODE_BUTTON_PIN);
   mode_button.interval(20);
 
-
   if (!bmp.begin()) {
-    Serial.println(F("Could not find a valid BMP280 sensor, check wiring!"));
-    while (1);
-  }
+   Serial.println("Could not find a valid BMP280 sensor, check wiring!");
+     }
 
 
   // LCD Setup:
@@ -257,22 +255,16 @@ void send_data_to_server()
   Serial.print("Sending data string: ");
   Serial.println(data_string);
 
-  // Try and send the data three times if it times out:
-  for ( int attempt = 0; attempt < MAX_DATA_SEND_TRIES; attempt++ ) {
-    if ( send_string_with_response( Serial1, data_string ) ) {
-      Serial.println("Data string send sucessfully");
-      return;
-    }
-
-  }
-
-  Serial.println("Data string send failed!");
+ 
+  send_string_with_response( Serial1, data_string );
+      Serial.println("Data string sent");
+  
 }
 
 
 
-// Send a string value via Serial and wait for an 'OK' response. If no response is received within 'time_out' ms then return false
-bool send_string_with_response( Stream& ser, const String& str, long unsigned int time_out)
+// Send a string value via Serial 
+bool send_string_with_response( Stream& ser, const String& str)
 {
 
   // Send the length of the string first:
@@ -288,34 +280,7 @@ bool send_string_with_response( Stream& ser, const String& str, long unsigned in
   }
 
   ser.flush();
-  // Now wait for response:
-  bool done = false;
-  String res = "";
-  long unsigned int start_time = millis();
-  bool timed_out = false;
-
-
-  while ( !done ) {
-    if ( ser.available() ) {
-      char c = ser.read();
-      res += c;
-    }
-
-    if ( res == "OK") {
-      Serial.println("Got OK from ESP8266");
-      done = true;
-    }
-
-    if ( millis() - start_time > time_out ) {
-      timed_out = true;
-      Serial.println("Timed out from ESP8266");
-      done = true;
-    }
-
-
-  }
-
-  return !timed_out;
+  
 }
 
 
