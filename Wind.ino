@@ -1,7 +1,7 @@
 #include "Sensor.h"
 
 
-//#define DEBUG_WIND 1  // Comment out to turn off debugging
+#define DEBUG_WIND 1  // Comment out to turn off debugging
 
 volatile int wind_speed_count = 0; // Counter used by interrupt
 
