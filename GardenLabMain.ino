@@ -10,7 +10,8 @@
         Wind Direction
         Rain fall
 
-    Send data to Wemos D1 Mini to be forwarded over WIFI to Raspberry Pi based server
+    Send data to Wemos D1 Mini to be forwarded over WIFI to Raspberry Pi based server. D1 Mini is only turned on when it's needed,
+    the Arduino controls it's power via MOSFET
     Display current settings on serial based LCD display
 
 
@@ -25,15 +26,13 @@
 #include "Sensor.h"
 
 
-/* Behavior defines: */
-#define MAX_DATA_SEND_TRIES 3
-
 #define DATA_SEND_PERIOD (1000l*60*5)    // Send data every 5 minutes
-#define LCD_UPDATE_PERIOD (1000l*10)      // Update LCD every 10 seconds
-
+#define LCD_UPDATE_PERIOD (1000l*10)     // Update LCD every 10 seconds
+#define D1_WARM_UP_PERIOD (1000l*5)      // Allow a very generous 5 seconds for D1 to warm up
+#define D1_ON_PERIOD (1000l*5)           // Allow 5 seconds for D1 to send data and shutdown
 
 /* Utility functions */
-// Send a string value via Serial 
+// Send a string value via Serial
 bool send_string( Stream& ser, const String& str);
 
 /* Pin assignments follow:
@@ -52,6 +51,7 @@ bool send_string( Stream& ser, const String& str);
   D20 - BMP pressure + temp sensor (SDA)
   D21 - BMP pressure + temp sensor (SCL)
 
+  D47 - Turn on and off the ESP8266 Wemos D1 Mini via Mosfet on power supply
   D49 - "LCD display mode" pushbutton
 */
 
@@ -60,9 +60,12 @@ bool send_string( Stream& ser, const String& str);
 #define RAINFALL_PIN 3
 #define WIND_DIRECTION_PIN A2
 #define MODE_BUTTON_PIN 49
+#define D1_POWER_PIN 47
 
 
-
+/* Enums for D1 power mode */
+enum class D1PowerMode { OFF, WARMING_UP, ON };
+D1PowerMode d1_power_mode = D1PowerMode::OFF;
 
 
 /* Mode definitions */
@@ -72,7 +75,7 @@ bool send_string( Stream& ser, const String& str);
 
 
 // When we sent data
-long unsigned int time_at_data_send = 0;
+long unsigned int time_at_d1_update = 0;
 // When we update the LCD
 long unsigned int time_at_lcd_update = 0;
 
@@ -128,9 +131,14 @@ void setup() {
   mode_button.attach(MODE_BUTTON_PIN);
   mode_button.interval(20);
 
+  // ESP8266 Power:
+  pinMode(D1_POWER_PIN, OUTPUT);
+  digitalWrite( D1_POWER_PIN, LOW );
+
+
   if (!bmp.begin()) {
-   Serial.println("Could not find a valid BMP280 sensor, check wiring!");
-     }
+    Serial.println("Could not find a valid BMP280 sensor, check wiring!");
+  }
 
 
   // LCD Setup:
@@ -144,7 +152,7 @@ void setup() {
     sensor->setup();
   }
 
-  time_at_data_send = millis();
+  time_at_d1_update = millis();
   time_at_lcd_update = millis();
 
 
@@ -167,23 +175,14 @@ void loop() {
     sensor->update();
   }
 
-  // Check if it's time to send data to the server:
-  unsigned long int elapsed_time = millis() - time_at_data_send;
-  if ( elapsed_time >= DATA_SEND_PERIOD ) {
-    time_at_data_send += DATA_SEND_PERIOD;
 
-    send_data_to_server();
-
-    // Reset any accumulating sensors (rainfall etc)
-    for ( auto sensor : all_sensors ) {
-      sensor->resetAccumulation();
-    }
+  handle_d1_send_data();
 
 
-  }
+
 
   // Check if it's time to update the LCD
-  elapsed_time = millis() - time_at_lcd_update;
+  unsigned long int elapsed_time = millis() - time_at_lcd_update;
   if ( elapsed_time >= LCD_UPDATE_PERIOD ) {
     time_at_lcd_update += LCD_UPDATE_PERIOD;
 
@@ -194,14 +193,51 @@ void loop() {
 
 }
 
+void handle_d1_send_data() {
+  // There are three states for the D1 Mini:
+  // "Off" - we are just waiting until it's time to send data to the server, power to the D1 is off.
+  // "Warming Up" - the D1 has been turned on, just waiting for it to initialize and connect to the server
+  // "On" - the D1 is sending data, wait to give it a chance to do so before shutting down and going back to "Off"
+
+  // Check if it's time to send data to the server:
+  unsigned long int elapsed_time = millis() - time_at_d1_update;
+ 
+  if ( (d1_power_mode == D1PowerMode::OFF) &&  (elapsed_time >= DATA_SEND_PERIOD) ) {
+    time_at_d1_update += DATA_SEND_PERIOD;
+    d1_power_mode = D1PowerMode::WARMING_UP;
+    digitalWrite( D1_POWER_PIN, HIGH );
+    Serial.println("Turning on D1 Mini for warm up");
+    return;
+  }
+
+  if ( (d1_power_mode == D1PowerMode::WARMING_UP) && (elapsed_time >= D1_WARM_UP_PERIOD) ) {
+
+    Serial.println( "D1 Warmed up sending data" );
+    // Warmed up - send data to sever:
+    send_data_to_server();
+
+    // Reset any accumulating sensors (rainfall etc)
+    for ( auto sensor : all_sensors ) {
+      sensor->resetAccumulation();
+    }
+
+    time_at_d1_update += D1_WARM_UP_PERIOD;
+    d1_power_mode = D1PowerMode::ON;
+    return;
+  }
+
+  if ( (d1_power_mode == D1PowerMode::ON) && (elapsed_time >= D1_ON_PERIOD )) {
+    Serial.println("Data sent, shutting down D1 mini" );
+    d1_power_mode = D1PowerMode::OFF;
+    time_at_d1_update += D1_ON_PERIOD;
+    pinMode( D1_POWER_PIN, LOW );
+   return;
+  }
+}
+
 /* Update the LCD display */
 void update_lcd()
 {
-
-
-#define LCD_WEATHER_MODE 0
-#define LCD_VOLT_CURRENT_MODE 1
-
 
   if ( current_mode == LCD_WEATHER_MODE ) {
 
@@ -255,16 +291,16 @@ void send_data_to_server()
   Serial.print("Sending data string: ");
   Serial.println(data_string);
 
- 
-  send_string_with_response( Serial1, data_string );
-      Serial.println("Data string sent");
-  
+
+  send_string( Serial1, data_string );
+  Serial.println("Data string sent");
+
 }
 
 
 
-// Send a string value via Serial 
-bool send_string_with_response( Stream& ser, const String& str)
+// Send a string value via Serial
+bool send_string( Stream& ser, const String& str)
 {
 
   // Send the length of the string first:
@@ -280,7 +316,7 @@ bool send_string_with_response( Stream& ser, const String& str)
   }
 
   ser.flush();
-  
+
 }
 
 
