@@ -3,7 +3,7 @@
 
 //#define DEBUG_RAIN 1
 
-const unsigned long int RAINFALL_COUNT_PERIOD = 60 * 1000l; // Update rainfall every 60 seconds
+const unsigned long int RAINFALL_COUNT_PERIOD = 20 * 1000l; // Update rainfall every 20 seconds
 
 volatile int rainfall_count = 0;  // Incremented in the interrupt function
 
@@ -32,12 +32,12 @@ void RainfallSensor::update(bool) {
   if ( elapsed_time > RAINFALL_COUNT_PERIOD ) {
     detachInterrupt(digitalPinToInterrupt(d_pin));
 
-    d_accumulated_rainfall = 0.2794 * (float)rainfall_count; // Each switch closure is 0.2794mm
+    d_accumulated_rainfall += 0.2794 * (float)rainfall_count; // Each switch closure is 0.2794mm
 
 #ifdef DEBUG_RAIN
     Serial.print("Updating rainfall - count = ");
     Serial.print(rainfall_count );
-    Serial.print(" accujulated rainfall (mm) = ");
+    Serial.print(" accumulated rainfall (mm) = ");
     Serial.println( d_accumulated_rainfall );
 #endif
 

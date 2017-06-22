@@ -70,7 +70,9 @@ D1PowerMode d1_power_mode = D1PowerMode::OFF;
 
 /* Mode definitions */
 #define LCD_WEATHER_MODE 0
-#define LCD_VOLT_CURRENT_MODE 1
+#define LCD_WIND_RAIN_MODE 1
+#define LCD_VOLT_CURRENT_MODE 2
+
 
 
 
@@ -85,8 +87,8 @@ SerialLCD lcd;
 
 Bounce mode_button = Bounce();
 
-int current_mode = 0;
-const int NUM_MODES = 2;
+int current_mode = LCD_WEATHER_MODE;
+const int NUM_MODES = 3;
 
 #define DHTTYPE DHT22   // DHT 22  (AM2302)
 DHT dht(DHT_PIN, DHTTYPE);
@@ -139,11 +141,11 @@ void setup() {
   if (!bmp.begin()) {
     Serial.println("Could not find a valid BMP280 sensor, check wiring!");
   }
-
+  delay(1000);
 
   // LCD Setup:
   lcd.clear();
-  lcd.backlight(20);
+  lcd.backlight(15);
   lcd.displayLine(2, (char*)"   GardenLab v1.0");
   delay(5000);
   lcd.clear();
@@ -254,13 +256,25 @@ void update_lcd()
     String itemp =     "Inside Temp:  " + String(itemp_sensor.getValue(), 1);
     lcd.displayLine(4, itemp);
 
-  }
+  } else if ( current_mode ==  LCD_WIND_RAIN_MODE) {
 
-  if ( current_mode == LCD_VOLT_CURRENT_MODE ) {
+
+    String windspeed =   "Windspeed (km):" + String(wind_speed_sensor.getValue(), 1 );
+    lcd.displayLine( 1, windspeed );
+
+    String wind_dir =    "Wind dir(deg):" + String(wind_direction_sensor.getValue(), 1);
+    lcd.displayLine( 2, wind_dir);
+
+    String rainfall =    "Rainfall (mm):" + String(rainfall_sensor.getValue() ,1);
+    lcd.displayLine( 3, rainfall);
+
+    
+
+  } else if ( current_mode == LCD_VOLT_CURRENT_MODE ) {
     String voltage =   "Battery (V):  " + String(bat_voltage_sensor.getValue(), 1 );
     lcd.displayLine( 1, voltage );
 
-    String current =    "Load (mA):    " + String(current_sensor.getValue() / 1000.0, 1);
+    String current =   "Load (mA):    " + String(current_sensor.getValue()*1000.0, 0);
     lcd.displayLine( 2, current);
   }
 

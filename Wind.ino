@@ -63,7 +63,7 @@ void WindSpeedSensor::update(bool) {
   if ( elapsed_time > WIND_SPEED_COUNT_PERIOD ) {
     detachInterrupt(digitalPinToInterrupt(d_pin));
 
-    float hz = (wind_speed_count/4) / (WIND_SPEED_COUNT_PERIOD / 1000); // four pulses per rotation
+    float hz = (wind_speed_count/4.0) / (WIND_SPEED_COUNT_PERIOD / 1000.0); // four pulses per rotation
     d_wind_speed_value = WIND_SPEED_CONVERSION_FACTOR * hz;
 
 #ifdef DEBUG_WIND

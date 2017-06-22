@@ -14,27 +14,27 @@
 SerialLCD::SerialLCD( )
 {
 
-  Serial2.begin(9600);
+  Serial3.begin(9600);
 
 }
 
 void SerialLCD::displayScreen(char *theText) {
   int delayTime = 50;
-  Serial2.write(0xFE);   // command flag
+  Serial3.write(0xFE);   // command flag
   delay(delayTime);
-  Serial2.write(128);    // start position for line 1
+  Serial3.write(128);    // start position for line 1
   if (strlen(theText) < 80) {
     // less than 80 characters, print then and then
-    Serial2.print(theText);
+    Serial3.print(theText);
     // pad the rest of the line with spaces
     for (int i = strlen(theText); i < 80; i++) {
-      Serial2.print(" ");
+      Serial3.print(" ");
     }
   }
   else {
     // 80 or more characters, just print the first 80
     for (int i = 0; i < 80; i++) {
-      Serial2.print(theText[i]);
+      Serial3.print(theText[i]);
     }
   }
   delay(delayTime);
@@ -75,22 +75,22 @@ void SerialLCD::displayLine(int lineNum,  char *theText) {
 
   // don't write to the LCD if the lineNum value didn't generate a valid position
   if (lcdPosition > 0) {
-    Serial2.write(0xFE);   //command flag
+    Serial3.write(0xFE);   //command flag
     delay(delayTime);
-    Serial2.write(lcdPosition);    //position
+    Serial3.write(lcdPosition);    //position
 
     if (strlen(theText) < 20) {
       // less than 20 characters, print then and then
-      Serial2.print(theText);
+      Serial3.print(theText);
       // pad the rest of the line with spaces
       for (int i = strlen(theText); i < 20; i++) {
-        Serial2.print(" ");
+        Serial3.print(" ");
       }
     }
     else {
       // 20 or more characters, just print the first 20
       for (int i = 0; i < 20; i++) {
-        Serial2.print(theText[i]);
+        Serial3.print(theText[i]);
       }
     }
     delay(delayTime);
@@ -128,24 +128,24 @@ void SerialLCD::displayChar(int lineNum, int charNum, char theChar) {
     // add to start of line position to get the position to write to
     lcdPosition = lcdPosition + charNum - 1;
 
-    Serial2.write(0xFE);   //command flag
+    Serial3.write(0xFE);   //command flag
     delay(delayTime);
-    Serial2.write(lcdPosition);    //position
-    Serial2.print(theChar);
+    Serial3.write(lcdPosition);    //position
+    Serial3.print(theChar);
     delay(delayTime);
   }
 }
 
 void SerialLCD::clear() {
-  Serial2.write(0xFE);   //command flag
-  Serial2.write(0x01);   //clear command.
+  Serial3.write(0xFE);   //command flag
+  Serial3.write(0x01);   //clear command.
   delay(50);
 }
 
 void SerialLCD::backlight(int thePercentage) { //turns on the backlight
-  Serial2.write(0x7C);   //command flag for backlight stuff
+  Serial3.write(0x7C);   //command flag for backlight stuff
   int theValue = map(thePercentage, 0, 100, 128, 157); // maps percentage to what SerLCD wants to see
-  Serial2.write(theValue);    //light level.
+  Serial3.write(theValue);    //light level.
   delay(50);
 }
 
