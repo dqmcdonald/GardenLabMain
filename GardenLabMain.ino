@@ -11,7 +11,7 @@
         Rain fall
 
     Send data to Wemos D1 Mini to be forwarded over WIFI to Raspberry Pi based server. D1 Mini is only turned on when it's needed,
-    the Arduino controls it's power via MOSFET
+    the Arduino controls it's power via a MOSFET
     Display current settings on serial based LCD display
 
 
@@ -40,6 +40,7 @@ bool send_string( Stream& ser, const String& str);
   A0  - Battery voltage monitoring through 4-1 Voltage divider
   A1  - Load current monitoring
   A2  - Wine vane
+  A3  - Panel current monitoring
 
   D2 -  Anemometer (Interrupt)
   D3 -  Rainfall gauge (Interrupt)
@@ -58,9 +59,13 @@ bool send_string( Stream& ser, const String& str);
 #define DHT_PIN 4
 #define WIND_SPEED_PIN 2
 #define RAINFALL_PIN 3
-#define WIND_DIRECTION_PIN A2
 #define MODE_BUTTON_PIN 49
 #define D1_POWER_PIN 47
+
+#define BATTERY_VOLTAGE_PIN A0
+#define LOAD_CURRENT_PIN A1
+#define WIND_DIRECTION_PIN A2
+#define PANEL_CURRENT_PIN A3
 
 
 /* Enums for D1 power mode */
@@ -97,18 +102,18 @@ Adafruit_BMP280 bmp; // I2C
 
 /* Sensors: */
 
-const int NUM_SENSORS = 9;
+const int NUM_SENSORS = 10;
 
 TemperatureSensor temp_sensor = TemperatureSensor("TEMP", dht );
 HumiditySensor humidity_sensor = HumiditySensor("HUMI", dht );
 InsideTempSensor itemp_sensor = InsideTempSensor("ITMP", bmp );
 PressureSensor pressure_sensor = PressureSensor("PRES", bmp );
-CurrentSensor current_sensor = CurrentSensor("LCUR");
-BatteryVoltageSensor bat_voltage_sensor = BatteryVoltageSensor("BATV");
+CurrentSensor load_current_sensor = CurrentSensor("LCUR", LOAD_CURRENT_PIN);
+BatteryVoltageSensor bat_voltage_sensor = BatteryVoltageSensor("BATV", BATTERY_VOLTAGE_PIN);
 WindSpeedSensor wind_speed_sensor = WindSpeedSensor("WSPD", WIND_SPEED_PIN);
 WindDirectionSensor wind_direction_sensor = WindDirectionSensor("WDIR", WIND_DIRECTION_PIN);
 RainfallSensor rainfall_sensor = RainfallSensor("RAIN", RAINFALL_PIN );
-
+CurrentSensor panel_current_sensor = CurrentSensor("PCUR", PANEL_CURRENT_PIN);
 
 // An array of sensors - so we can iterate through them all and perform update/reset etc on them
 Sensor* all_sensors[NUM_SENSORS] = {
@@ -116,11 +121,12 @@ Sensor* all_sensors[NUM_SENSORS] = {
   &humidity_sensor,
   &itemp_sensor,
   &pressure_sensor,
-  &current_sensor,
+  &load_current_sensor,
   &bat_voltage_sensor,
   &wind_speed_sensor,
   &wind_direction_sensor,
-  &rainfall_sensor
+  &rainfall_sensor,
+  &panel_current_sensor
 };
 
 
@@ -203,7 +209,7 @@ void handle_d1_send_data() {
 
   // Check if it's time to send data to the server:
   unsigned long int elapsed_time = millis() - time_at_d1_update;
- 
+
   if ( (d1_power_mode == D1PowerMode::OFF) &&  (elapsed_time >= DATA_SEND_PERIOD) ) {
     time_at_d1_update += DATA_SEND_PERIOD;
     d1_power_mode = D1PowerMode::WARMING_UP;
@@ -233,7 +239,7 @@ void handle_d1_send_data() {
     d1_power_mode = D1PowerMode::OFF;
     time_at_d1_update += D1_ON_PERIOD;
     pinMode( D1_POWER_PIN, LOW );
-   return;
+    return;
   }
 }
 
@@ -265,17 +271,20 @@ void update_lcd()
     String wind_dir =    "Wind dir(deg):" + String(wind_direction_sensor.getValue(), 1);
     lcd.displayLine( 2, wind_dir);
 
-    String rainfall =    "Rainfall (mm):" + String(rainfall_sensor.getValue() ,1);
+    String rainfall =    "Rainfall (mm):" + String(rainfall_sensor.getValue() , 1);
     lcd.displayLine( 3, rainfall);
 
-    
+
 
   } else if ( current_mode == LCD_VOLT_CURRENT_MODE ) {
     String voltage =   "Battery (V):  " + String(bat_voltage_sensor.getValue(), 1 );
     lcd.displayLine( 1, voltage );
 
-    String current =   "Load (mA):    " + String(current_sensor.getValue()*1000.0, 0);
-    lcd.displayLine( 2, current);
+    String load_current =   "Load (mA):    " + String(load_current_sensor.getValue() * 1000.0, 0);
+    lcd.displayLine( 2, load_current);
+
+    String panel_current =   "Panel (mA):  " + String(panel_current_sensor.getValue() * 1000.0, 0);
+    lcd.displayLine( 2, panel_current);
   }
 
   // Reset the average values:

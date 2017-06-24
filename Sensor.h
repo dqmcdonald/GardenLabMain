@@ -110,7 +110,7 @@ class PressureSensor : public Sensor {
 class CurrentSensor : public AveragingSensor {
 
   public:
-    CurrentSensor( const String& id);
+    CurrentSensor( const String& id, const int& pin);
     ~CurrentSensor() {};
     void setup();
 
@@ -118,6 +118,7 @@ class CurrentSensor : public AveragingSensor {
     virtual float readSensor() override;
 
   private:
+  int d_pin;
 
 };
 
@@ -125,12 +126,13 @@ class CurrentSensor : public AveragingSensor {
 class BatteryVoltageSensor : public AveragingSensor {
 
   public:
-    BatteryVoltageSensor( const String& id);
+    BatteryVoltageSensor( const String& id, const int& pin);
 
     void setup() override;
   protected:
     virtual float readSensor() override;
   private:
+  int d_pin;
 
 };
 
