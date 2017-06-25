@@ -78,7 +78,7 @@ D1PowerMode d1_power_mode = D1PowerMode::OFF;
 #define LCD_WIND_RAIN_MODE 1
 #define LCD_VOLT_CURRENT_MODE 2
 
-
+#define LCD_BACKLIGHT 50  // 50% backlight for LCD
 
 
 // When we sent data
@@ -151,7 +151,7 @@ void setup() {
 
   // LCD Setup:
   lcd.clear();
-  lcd.backlight(15);
+  lcd.backlight(LCD_BACKLIGHT);
   lcd.displayLine(2, (char*)"   GardenLab v1.0");
   delay(5000);
   lcd.clear();
@@ -246,6 +246,9 @@ void handle_d1_send_data() {
 /* Update the LCD display */
 void update_lcd()
 {
+  Serial3.begin(9600);
+  lcd.clear();
+  lcd.backlight(LCD_BACKLIGHT);
 
   if ( current_mode == LCD_WEATHER_MODE ) {
 
@@ -283,8 +286,8 @@ void update_lcd()
     String load_current =   "Load (mA):    " + String(load_current_sensor.getValue() * 1000.0, 0);
     lcd.displayLine( 2, load_current);
 
-    String panel_current =   "Panel (mA):  " + String(panel_current_sensor.getValue() * 1000.0, 0);
-    lcd.displayLine( 2, panel_current);
+    String panel_current =  "Panel (mA):   " + String(panel_current_sensor.getValue() * 1000.0, 0);
+    lcd.displayLine( 3, panel_current);
   }
 
   // Reset the average values:
@@ -293,10 +296,9 @@ void update_lcd()
   }
 
 
+  Serial3.end();
 
 }
-
-
 
 /* Collect data from all the sensors and send it to the ESP8266 via serial */
 void send_data_to_server()
